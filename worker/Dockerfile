@@ -10,7 +10,7 @@ COPY worker/package*.json ./worker/
 RUN npm install --prefix worker
 
 COPY worker/ ./worker/
-COPY server/prisma/ ./worker/prisma/
+COPY server/prisma/ ./server/prisma/
 
 RUN npm --prefix worker run prisma:generate
 RUN npm --prefix worker run build
@@ -24,7 +24,7 @@ RUN apk add --no-cache openssl libc6-compat
 
 COPY package*.json ./
 COPY worker/package*.json ./worker/
-COPY server/prisma/ ./worker/prisma/
+COPY server/prisma/ ./server/prisma/
 
 RUN npm install --prefix worker --omit=dev
 RUN npm --prefix worker run prisma:generate

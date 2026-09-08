@@ -21,7 +21,7 @@ Bankacılık müşteri ürün bilgilendirme ve iletişim onay süreçlerini yön
 
 ```
 fintech-consent-hub/
-├── client/                     # React 18, Vite, Tailwind CSS Frontend
+├── client/                     # React 18, Vite, Clean Fintech Design System
 │   ├── src/components/         # Tablo, Sayfalama, Rozetler ve Maskeleme
 │   ├── src/hooks/              # State ve Sayfalama Yönetimi
 │   ├── src/services/           # HTTP API İstemcisi
@@ -57,11 +57,12 @@ fintech-consent-hub/
 
 ### Karar Matrisi
 
-| Senaryo | İletişim Onayı (SMS / E-posta) | Dijital Belge Onayı | İşlem Kodu | Açıklama | DB Kaydı & RabbitMQ Event |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Senaryo 1** | İkisi de `false` |  --- | `REJECTED_NO_CONSENT` | İletişim onayı bulunmamaktadır. | Kaydedilmez, kuyruğa mesaj atılmaz |
-| **Senaryo 2** | En az biri `true` | `false` | `APPROVED_BRANCH_CALL` | Musteri ürün bilgilendirmesi yapıldı. Şubeye çağırmak icin aranabilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
-| **Senaryo 3** | En az biri `true` | `true` | `APPROVED_DIGITAL` | Musteri ürün bilgilendirmesi yapıldı.Surec dijital olarak devam ettirilebilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
+| Senaryo | Müşteri Statüsü | İletişim Onayı (SMS / E-posta) | Dijital Belge Onayı | İşlem Kodu | Açıklama | DB Kaydı & RabbitMQ Event |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Kısıtlı Personel** | `Personel` | Herhangi (`true`/`false`) | Herhangi (`true`/`false`) | `RESTRICTED_STAFF` | Banka personeli statüsündeki müşterilere standart ürün pazarlama bildirimi yapılamaz. | Kaydedilmez, kuyruğa mesaj atılmaz |
+| **İletişim Onaysız** | `Musteri` | İkisi de `false` | --- | `REJECTED_NO_CONSENT` | İletişim onayı bulunmamaktadır. | Kaydedilmez, kuyruğa mesaj atılmaz |
+| **Şube Yönlendirme** | `Musteri` | En az biri `true` | `false` | `APPROVED_BRANCH_CALL` | Musteri ürün bilgilendirmesi yapıldı. Şubeye çağırmak icin aranabilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
+| **Dijital Akış** | `Musteri` | En az biri `true` | `true` | `APPROVED_DIGITAL` | Musteri ürün bilgilendirmesi yapıldı.Surec dijital olarak devam ettirilebilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
 
 ![Karar Motoru ve Decision Wall Akışı](./docs/images/decision-wall.png)
 
@@ -146,7 +147,7 @@ Tüm testler **Jest**, **ts-jest** ve **Supertest** kullanılarak BDD (Behavior-
 # Tüm çalışma alanlarını (Server, Worker, Client) derleme
 npm run build
 
-# Tüm entegrasyon ve BDD test paketlerini çalıştırma (6 Suite, 30 Test)
+# Tüm entegrasyon ve BDD test paketlerini çalıştırma (9 Suite, 51 Test PASS)
 npm test
 
 # Detaylı kod kapsama (Coverage) raporunu üretme
@@ -154,6 +155,7 @@ npm run test:coverage
 
 # Modüler test paketleri
 npm run --prefix server test:unit         # WallService & Kural Motoru
+npm run --prefix server test:security     # Güvenlik & Anti-Spoofing Doğrulaması
 npm run --prefix server test:e2e          # E2E Tam Akış & Sayfalama
 npm run --prefix server test:relay        # Transactional Outbox Relay & Publisher Confirms
 npm run --prefix server test:idempotency  # Idempotent Consumer & Inbox Deseni (P2002 Yarış İzolasyonu)
