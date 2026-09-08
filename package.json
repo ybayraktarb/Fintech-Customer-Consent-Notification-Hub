@@ -1,0 +1,28 @@
+{
+  "name": "musteri-onay-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Müşteri Onay ve Bildirim Yönetim Sistemi - Monorepo",
+  "workspaces": [
+    "server",
+    "client",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,WORKER,CLIENT\" -c \"blue,magenta,green\" \"npm --prefix server run dev\" \"npm --prefix worker run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:worker": "npm --prefix worker run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix worker run build && npm --prefix client run build",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix worker && npm install --prefix client",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:push": "npm --prefix server run prisma:push",
+    "prisma:seed": "npm --prefix server run prisma:seed",
+    "test": "npm --prefix server test",
+    "test:coverage": "npm --prefix server run test:coverage",
+    "test:e2e": "npm --prefix server run test:e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

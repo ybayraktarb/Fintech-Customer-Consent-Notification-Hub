@@ -1,0 +1,149 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: musteri_onay_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: musteri_onay_db
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d musteri_onay_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - musteri_net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: musteri_onay_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - musteri_net
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: musteri_onay_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/musteri_onay_db?schema=public"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+      CLIENT_ORIGIN: "http://localhost:8088"
+    ports:
+      - "5001:5001"
+    networks:
+      - musteri_net
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: musteri_onay_worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/musteri_onay_db?schema=public"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+    ports:
+      - "5002:5002"
+    networks:
+      - musteri_net
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: musteri_onay_client
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8088:80"
+    networks:
+      - musteri_net
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: musteri_onay_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - musteri_net
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: musteri_onay_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - musteri_net
+
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  musteri_net:
+    driver: bridge

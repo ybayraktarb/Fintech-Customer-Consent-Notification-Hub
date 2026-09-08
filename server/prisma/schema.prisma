@@ -1,0 +1,84 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x", "darwin-arm64"]
+}
+
+model Customer {
+  id                    String   @id @default(uuid())
+  musteriNo             String   @unique
+  musteriAdi            String
+  musteriSoyadi         String
+  musteriTckn           String
+  musteriDurumu         String
+  subeKod               String
+  subeAdi               String
+  kullandirilabilirUrun String
+  epostaOnay            Boolean  @default(false)
+  smsOnay               Boolean  @default(false)
+  dijitalBelgeSurecOnay Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  notifications         CustomerNotificationLog[]
+
+  @@map("customers")
+}
+
+model CustomerNotificationLog {
+  id                    String   @id @default(uuid())
+  musteriNo             String
+  musteriAdi            String
+  musteriSoyadi         String
+  musteriTckn           String
+  musteriDurumu         String
+  subeKod               String
+  subeAdi               String
+  kullandirilabilirUrun String
+  epostaOnay            Boolean
+  smsOnay               Boolean
+  dijitalBelgeSurecOnay Boolean
+  bildirimDurumu        String   @default("QUEUED") // QUEUED, DELIVERED, FAILED, Yapıldı
+  islemKodu             String?
+  islemAck              String?
+  outboxMessageId       String?
+  isActive              Boolean  @default(true)
+  kayitYapan            String
+  kayitZmn              DateTime @default(now())
+  guncellemeYapan       String
+  guncellemeZmn         DateTime @default(now())
+  bildirimZmn           DateTime @default(now())
+
+  customer              Customer @relation(fields: [musteriNo], references: [musteriNo], onDelete: Cascade)
+
+  @@index([musteriNo])
+  @@index([outboxMessageId])
+  @@map("customer_notification_logs")
+}
+
+model OutboxMessage {
+  id            String    @id @default(uuid())
+  eventType     String
+  payload       Json
+  correlationId String?
+  status        String    @default("PENDING") // PENDING, PUBLISHED, FAILED
+  retryCount    Int       @default(0)
+  errorReason   String?
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@map("outbox_messages")
+}
+
+model ProcessedMessage {
+  messageId    String   @id
+  consumerName String
+  processedAt  DateTime @default(now())
+
+  @@map("processed_messages")
+}

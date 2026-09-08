@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'Fintech Hub Dashboards'
+    orgId: 1
+    folder: 'Fintech Observability'
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

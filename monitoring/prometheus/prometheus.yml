@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'fintech-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:5001']
+        labels:
+          service: 'fintech-consent-api'
+          environment: 'production'
+
+  - job_name: 'fintech-worker'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['worker:5002']
+        labels:
+          service: 'fintech-notification-worker'
+          environment: 'production'
+
+  - job_name: 'rabbitmq'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: 'fintech-rabbitmq-broker'
+          environment: 'production'

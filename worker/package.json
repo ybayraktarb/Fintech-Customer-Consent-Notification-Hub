@@ -1,0 +1,29 @@
+{
+  "name": "musteri-onay-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Müşteri Bildirim Asenkron Tüketici Servisi (RabbitMQ Consumer Worker)",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "prisma:generate": "prisma generate --schema=../server/prisma/schema.prisma",
+    "start": "node dist/index.js"
+  },
+  "prisma": {
+    "schema": "../server/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "amqplib": "^0.10.4",
+    "dotenv": "^16.4.5",
+    "prisma": "^5.22.0",
+    "prom-client": "^15.1.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/node": "^20.14.9",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.2"
+  }
+}

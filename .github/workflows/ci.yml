@@ -1,0 +1,104 @@
+name: Continuous Integration (CI)
+
+on:
+  push:
+    branches: [main, master, develop, "feature/**"]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  test-and-build:
+    name: Test & Build (TypeScript & Workspaces)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: musteri_onay_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics check_port_connectivity"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install --prefix server
+          npm install --prefix worker
+          npm install --prefix client
+
+      - name: Generate Prisma Client
+        working-directory: server
+        run: npx prisma generate
+
+      - name: Apply database schema & seed
+        working-directory: server
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/musteri_onay_db?schema=public"
+        run: |
+          npx prisma db push
+          npx ts-node -T prisma/seed.ts
+
+      - name: Run backend integration tests
+        working-directory: server
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/musteri_onay_db?schema=public"
+          RABBITMQ_URL: "amqp://guest:guest@localhost:5672"
+        run: npm test
+
+      - name: Run E2E flow tests
+        working-directory: server
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/musteri_onay_db?schema=public"
+          RABBITMQ_URL: "amqp://guest:guest@localhost:5672"
+        run: npm run test:e2e
+
+      - name: Build monorepo workspaces
+        run: |
+          npm run build --prefix server
+          npm run build --prefix worker
+          npm run build --prefix client
+
+  docker-build-check:
+    name: Docker Compose Build Verification
+    runs-on: ubuntu-latest
+    needs: test-and-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose config
+        run: docker compose config
+
+      - name: Build Docker images
+        run: docker compose build
