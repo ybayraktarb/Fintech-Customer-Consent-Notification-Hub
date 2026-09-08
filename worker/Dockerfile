@@ -22,13 +22,8 @@ ENV NODE_ENV=production
 
 RUN apk add --no-cache openssl libc6-compat
 
-COPY package*.json ./
-COPY worker/package*.json ./worker/
-COPY server/prisma/ ./server/prisma/
-
-RUN npm install --prefix worker --omit=dev
-RUN npm --prefix worker run prisma:generate
-
 COPY --from=builder /app/worker/dist ./worker/dist
+COPY --from=builder /app/worker/node_modules ./worker/node_modules
+COPY --from=builder /app/worker/package*.json ./worker/
 
 CMD ["node", "worker/dist/index.js"]

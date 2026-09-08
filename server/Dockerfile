@@ -21,14 +21,9 @@ ENV NODE_ENV=production
 
 RUN apk add --no-cache openssl libc6-compat
 
-COPY package*.json ./
-COPY server/package*.json ./server/
-COPY server/prisma/ ./server/prisma/
-
-RUN npm install --prefix server --omit=dev
-RUN npm --prefix server run prisma:generate
-
 COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/server/node_modules ./server/node_modules
+COPY --from=builder /app/server/package*.json ./server/
 
 EXPOSE 5001
 
