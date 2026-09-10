@@ -1,165 +1,84 @@
 # Fintech Customer Consent & Notification Hub
 
-Bankacılık müşteri ürün bilgilendirme ve iletişim onay süreçlerini yöneten; **PostgreSQL**, **Prisma ORM**, **RabbitMQ** asenkron mesaj kuyruğu, **Notification Worker** servisi ve **Docker Compose** orkestrasyonuna sahip kurumsal TypeScript monorepo platformu.
+Müşteri iletişim ve dijital süreç onaylarına göre bildirim kanalını (dijital bildirim veya şube araması) belirleyen karar motoru ve asenkron bildirim yönetim sistemi.
 
----
+## Mimari
 
-## Sistem Mimarisi
+Sistem; REST API, Transactional Outbox deseni, RabbitMQ mesaj kuyruğu, kuyruğu tüketen bir Worker servisi ve şube personelinin kayıtları yönetebildiği bir React arayüzünden oluşur.
 
 ![Sistem Mimarisi ve Docker Compose](./docs/images/docker-compose.png)
 
----
-
-## Kullanıcı Arayüzü (UI Dashboard)
+### Temel Bileşenler
+- **client:** Şube personeli için onay ve denetim geçmişi yönetim arayüzü (React + Vite).
+- **server:** Karar motoru (WallService), REST API ve Outbox Relay servisi (Express + Prisma).
+- **worker:** RabbitMQ üzerinden gelen bildirim mesajlarını tekilleştirerek (idempotent) işleyen tüketici servis.
+- **monitoring:** Prometheus metrikleri ve Grafana panoları.
 
 ![Müşteri Onay ve Bildirim Yönetim Paneli](./docs/images/musteri.png)
 
+## Karar Motoru Kuralları
 
----
+Gelen bildirim talepleri müşterinin statüsüne ve onay tercihlerine göre değerlendirilir:
 
-## Proje Dizin Hiyerarşisi
+| Senaryo | Müşteri Statüsü | İletişim İzni (SMS/E-posta) | Dijital Belge İzni | İşlem Kodu | Sonuç |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Banka Personeli** | Personel | - | - | `RESTRICTED_STAFF` | Reddedilir, pazarlama bildirimi yapılamaz |
+| **Onaysız Müşteri** | Müşteri | Yok | - | `REJECTED_NO_CONSENT` | Reddedilir, bildirim yapılamaz |
+| **Şube Araması** | Müşteri | Var | Yok | `APPROVED_BRANCH_CALL` | Şube araması için kuyruğa iletilir |
+| **Dijital Akış** | Müşteri | Var | Var | `APPROVED_DIGITAL` | Doğrudan dijital bildirim kuyruğuna iletilir |
 
-```
-fintech-consent-hub/
-├── client/                     # React 18, Vite, Clean Fintech Design System
-│   ├── src/components/         # Tablo, Sayfalama, Rozetler ve Maskeleme
-│   ├── src/hooks/              # State ve Sayfalama Yönetimi
-│   ├── src/services/           # HTTP API İstemcisi
-│   ├── Dockerfile              
-│   └── nginx.conf              
-│
-├── server/                     # Express.js REST API & Transactional Outbox Relay
-│   ├── prisma/                 # Schema & Migrations
-│   ├── src/controllers/        # REST API Denetleyicileri
-│   ├── src/services/           # Wall Kural Motoru, Outbox Relay, Entity DB
-│   ├── src/repositories/       # PostgreSQL Repositories (Customer, Outbox, Logs)
-│   ├── src/middlewares/        # Correlation ID (Tracing) & Metrics (High Cardinality Defense)
-│   ├── src/config/             # Prometheus Metrics Registry, RabbitMQ, Prisma
-│   ├── src/tests/              # Jest & Ts-Jest Entegrasyon Testleri
-│   └── Dockerfile              
-│
-├── worker/                     # Asenkron Bildirim Tüketicisi & Idempotent Inbox
-│   ├── src/index.ts            # RabbitMQ Consumer & Processed Messages Dedup
-│   ├── src/metrics.ts          # Worker Prometheus Metrik Sunucusu (:5002)
-│   └── Dockerfile             
-│
-├── monitoring/                 # Observability as Code
-│   ├── prometheus/             # Prometheus Scraping Konfigürasyonu
-│   └── grafana/                # Otomatik Panolar ve Veri Kaynakları
-│
-├── docs/                       # Mimari Şemaları ve Ekran Görüntüleri
-│   └── images/                 
-│
-├── .github/workflows/          # GitHub Actions CI Pipeline (ci.yml)
-├── docker-compose.yml          # Tüm Servislerin Orkestrasyonu
-└── package.json                # Monorepo Workspace Konfigürasyonu
-```
+![Karar Motoru Akışı](./docs/images/decision-wall.png)
 
-### Karar Matrisi
+## Yetkilendirme (ABAC)
 
-| Senaryo | Müşteri Statüsü | İletişim Onayı (SMS / E-posta) | Dijital Belge Onayı | İşlem Kodu | Açıklama | DB Kaydı & RabbitMQ Event |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Kısıtlı Personel** | `Personel` | Herhangi (`true`/`false`) | Herhangi (`true`/`false`) | `RESTRICTED_STAFF` | Banka personeli statüsündeki müşterilere standart ürün pazarlama bildirimi yapılamaz. | Kaydedilmez, kuyruğa mesaj atılmaz |
-| **İletişim Onaysız** | `Musteri` | İkisi de `false` | --- | `REJECTED_NO_CONSENT` | İletişim onayı bulunmamaktadır. | Kaydedilmez, kuyruğa mesaj atılmaz |
-| **Şube Yönlendirme** | `Musteri` | En az biri `true` | `false` | `APPROVED_BRANCH_CALL` | Musteri ürün bilgilendirmesi yapıldı. Şubeye çağırmak icin aranabilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
-| **Dijital Akış** | `Musteri` | En az biri `true` | `true` | `APPROVED_DIGITAL` | Musteri ürün bilgilendirmesi yapıldı.Surec dijital olarak devam ettirilebilir | PostgreSQL'e kaydedilir, kuyruğa aktarılır |
+Müşteri denetim kayıtlarına (`Audit Logs`) erişim, Attribute-Based Access Control (ABAC) prensiplerine göre mesai saatleri ve rol bazında sınırlandırılmıştır.
 
-![Karar Motoru ve Decision Wall Akışı](./docs/images/decision-wall.png)
+Bu altyapı için `@rubiklabs/nestjs-jacpol` kütüphanesinin PDP (*Policy Decision Point*) ve PRP (*Policy Retrieval Point*) servisleri kullanılmıştır. Kütüphane adı NestJS referansı içerse de kural motoru bağımsız bir TypeScript modülü olarak Express middleware katmanına entegre edilmiştir.
 
----
+- **Şube Personeli:** Yalnızca hafta içi mesai saatlerinde (**09:00 - 18:00**, `Europe/Istanbul`) denetim kayıtlarına erişebilir. Mesai dışı ve hafta sonu istekleri `403 Forbidden` ile engellenir.
+- **Müfettiş / Auditor & Admin:** Teftiş süreçleri için kayıtlara 7/24 erişebilir.
+- **Varsayılan İlke:** Tanımsız roller ve mesai dışı talepler doğrudan reddedilir (`denyOverrides`).
 
 ## Kurulum ve Çalıştırma
 
-Tüm sistemi (PostgreSQL, RabbitMQ, API, Worker ve Frontend) tek komutla ayağa kaldırmak için:
+Tüm sistemi (PostgreSQL, RabbitMQ, API, Worker, Client, Prometheus, Grafana) Docker ile ayağa kaldırmak için:
 
 ```bash
 docker compose up --build
 ```
 
-Arka planda çalıştırmak için:
-```bash
-docker compose up -d
-```
+### Servisler ve Portlar
 
-### Servis Erişim Adresleri ve Portlar
-
-| Servis | Adres | Açıklama / Kimlik Bilgileri |
+| Servis | Adres | Bilgi |
 | :--- | :--- | :--- |
-| **Ön Yüz (Client)** | `http://localhost:8088` | React web kullanıcı arayüzü |
-| **Arka Uç (API)** | `http://localhost:5001/api` | Express REST API uç noktaları |
-| **Prometheus Metrikleri (API)** | `http://localhost:5001/metrics` | API RED & Outbox işleme metrikleri |
-| **Prometheus Metrikleri (Worker)** | `http://localhost:5002/metrics` | Worker tüketici & Idempotency metrikleri |
-| **Grafana Dashboard** | `http://localhost:3000` | Önceden yapılandırılmış Fintech Metrik Panosu (Anonim Giriş Aktif) |
-| **Prometheus Sunucusu** | `http://localhost:9090` | Zaman serisi veritabanı ve metrik sorgulama paneli |
-| **RabbitMQ Yönetim Paneli** | `http://localhost:15672` | **Kullanıcı:** `guest` \| **Şifre:** `guest` |
-| **PostgreSQL Veritabanı** | `localhost:5439` | **DB:** `musteri_onay_db` \| **Kullanıcı:** `postgres` |
-
----
+| **Web Arayüzü** | `http://localhost:8088` | React yönetim paneli |
+| **Backend API** | `http://localhost:5001/api` | REST API |
+| **Prometheus** | `http://localhost:9090` | Metrik toplama |
+| **Grafana** | `http://localhost:3000` | İzleme panosu (Anonim erişim açık) |
+| **RabbitMQ Management** | `http://localhost:15672` | `guest` / `guest` |
+| **PostgreSQL** | `localhost:5439` | `musteri_onay_db` / `postgres` |
 
 ## API Uç Noktaları
 
-### 1. Müşteri Listesi 
-- **Method:** `GET`
-- **Path:** `/api/customers`
-- **Query Parameters:**
-  - `page` *(default: 1)*: İstenen sayfa numarası
-  - `limit` *(default: 10, max: 100)*: Sayfa başına satır sayısı
-  - `search` *(optional)*: Müşteri no, ad, soyad, TCKN veya şube filtresi
+- `GET /api/customers` — Müşteri listesi (arama ve sayfalama destekli)
+- `POST /api/wall/process-notification` — Karar motoru üzerinden bildirim işleme ve kuyruğa iletim
+- `GET /api/customers/:musteriNo/audit-logs` — Müşteri bazlı denetim geçmişi (ABAC korumalı)
+- `GET /api/audit-logs` — Genel denetim kayıtları (ABAC korumalı)
+- `GET /metrics` — Prometheus metrikleri (`:5001` ve `:5002`)
 
-### 2. Bildirim İşleme (Wall Servisi & Event Dispatch)
+![Asenkron Bildirim Dağıtımı](./docs/images/notification-dispatch.png)
 
-![Asenkron Bildirim Dağıtımı ve Kuyruk Akışı](./docs/images/notification-dispatch.png)
-
-- **Method:** `POST`
-- **Path:** `/api/wall/process-notification`
-- **Request Body (JSON):**
-```json
-{
-  "musteriNo": "10000001",
-  "musteriAdi": "Örnek",
-  "musteriSoyadi": "Müşteri 1",
-  "musteriTckn": "10000000001",
-  "musteriDurumu": "Musteri",
-  "subeKod": "0101",
-  "subeAdi": "Örnek Şube A",
-  "kullandirilabilirUrun": "Kredi Kartı",
-  "epostaOnay": true,
-  "smsOnay": true,
-  "dijitalBelgeSurecOnay": true,
-  "islemYapanSicil": "P10842"
-}
-```
-- **Response Body (JSON):**
-```json
-{
-  "islemKodu": "APPROVED_DIGITAL",
-  "islemAck": "Musteri ürün bilgilendirmesi yapıldı.Surec dijital olarak devam ettirilebilir"
-}
-```
-
----
-
-## Testler ve Doğrulama
-
-Tüm testler **Jest**, **ts-jest** ve **Supertest** kullanılarak BDD (Behavior-Driven Development) standartlarında yazılmıştır. Assert scriptleri yerine izole describe/it blokları ve coverage raporlama kullanılmaktadır.
+## Testler
 
 ```bash
-# Tüm çalışma alanlarını (Server, Worker, Client) derleme
-npm run build
-
-# Tüm entegrasyon ve BDD test paketlerini çalıştırma (9 Suite, 51 Test PASS)
+# Tüm test paketlerini çalıştır
 npm test
 
-# Detaylı kod kapsama (Coverage) raporunu üretme
+# Test kapsam raporu
 npm run test:coverage
 
-# Modüler test paketleri
-npm run --prefix server test:unit         # WallService & Kural Motoru
-npm run --prefix server test:security     # Güvenlik & Anti-Spoofing Doğrulaması
-npm run --prefix server test:e2e          # E2E Tam Akış & Sayfalama
-npm run --prefix server test:relay        # Transactional Outbox Relay & Publisher Confirms
-npm run --prefix server test:idempotency  # Idempotent Consumer & Inbox Deseni (P2002 Yarış İzolasyonu)
-npm run --prefix server test:trace        # Dağıtık İzleme (X-Correlation-ID Propagasyonu)
-npm run --prefix server test:metrics      # Prometheus RED Metrikleri & High Cardinality Savunması
+# Spesifik test grupları (server)
+npm run --prefix server test:unit       
+npm run --prefix server test:security    
+npm run --prefix server test:e2e         
 ```
-

@@ -113,7 +113,11 @@ describe('CustomerController & HTTP Endpoints Test Suite', () => {
 
   describe('GET /api/customers/:musteriNo/audit-logs', () => {
     it('returns specific customer audit history in descending order', async () => {
-      const res = await request(app).get('/api/customers/CTRL_001/audit-logs');
+      const res = await request(app)
+        .get('/api/customers/CTRL_001/audit-logs')
+        .set('x-user-role', 'staff')
+        .set('x-mock-time', '14:00')
+        .set('x-mock-weekday', 'monday');
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThanOrEqual(1);
@@ -121,7 +125,11 @@ describe('CustomerController & HTTP Endpoints Test Suite', () => {
     });
 
     it('returns empty list for customer with no notification history', async () => {
-      const res = await request(app).get('/api/customers/CTRL_002/audit-logs');
+      const res = await request(app)
+        .get('/api/customers/CTRL_002/audit-logs')
+        .set('x-user-role', 'staff')
+        .set('x-mock-time', '14:00')
+        .set('x-mock-weekday', 'monday');
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBe(0);
@@ -130,7 +138,11 @@ describe('CustomerController & HTTP Endpoints Test Suite', () => {
 
   describe('GET /api/audit-logs', () => {
     it('returns all audit logs across the system', async () => {
-      const res = await request(app).get('/api/audit-logs');
+      const res = await request(app)
+        .get('/api/audit-logs')
+        .set('x-user-role', 'auditor')
+        .set('x-mock-time', '14:00')
+        .set('x-mock-weekday', 'monday');
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThanOrEqual(1);

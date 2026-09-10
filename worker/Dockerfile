@@ -10,9 +10,9 @@ COPY worker/package*.json ./worker/
 RUN npm install --prefix worker
 
 COPY worker/ ./worker/
-COPY server/prisma/ ./server/prisma/
+COPY server/prisma/ ./worker/prisma/
 
-RUN npm --prefix worker run prisma:generate
+RUN npx --prefix worker prisma generate --schema=./worker/prisma/schema.prisma
 RUN npm --prefix worker run build
 
 FROM node:20-alpine AS runner

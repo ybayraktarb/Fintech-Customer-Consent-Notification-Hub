@@ -76,9 +76,32 @@ body {
 .corporate-header {
   background-color: var(--color-bg-header);
   color: #ffffff;
-  padding: 12px 24px;
+  padding: 10px 24px;
   border-bottom: 2px solid #0f3a6b;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo-badge {
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
 }
 
 .header-title {
@@ -86,6 +109,78 @@ body {
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.2px;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.header-sub-tag {
+  font-size: 11px;
+  color: #93c5fd;
+  font-weight: 500;
+}
+
+/* Kurumsal Kullanıcı Profil Rozeti */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 5px 12px;
+}
+
+.user-avatar-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #0284c7;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-profile-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.user-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 5px #22c55e;
+  display: inline-block;
+}
+
+.user-profile-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.inline-role-icon {
+  color: #38bdf8;
 }
 
 /* Ana İçerik */
@@ -324,25 +419,30 @@ body {
   gap: 6px;
 }
 
-.btn-history-action {
+.btn-audit-logs {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background-color: var(--color-slate-50);
-  color: var(--color-slate-600);
-  border: 1px solid var(--color-slate-300);
-  padding: 4px 8px;
+  gap: 5px;
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
-.btn-history-action:hover {
-  background-color: var(--color-slate-200);
-  border-color: var(--color-slate-400);
-  color: var(--color-slate-900);
+.btn-audit-logs:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-audit-logs .audit-btn-icon {
+  color: #0284c7;
 }
 
 .btn-action-active {
@@ -836,4 +936,230 @@ body {
 
 .btn-modal-action:hover {
   background-color: var(--color-primary-hover);
+}
+
+/* ==========================================================================
+   Kurumsal Denetim Modalı & Güvenlik Kartı
+   ========================================================================== */
+.modal-large {
+  max-width: 980px;
+  width: 95%;
+}
+
+.modal-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+
+/* Kurumsal Güvenlik Kısıtlama Kartı (403 Forbidden) */
+.security-restricted-card {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.restricted-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #fee2e2;
+}
+
+.restricted-icon-bubble {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.restricted-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #991b1b;
+  margin: 0 0 4px 0;
+}
+
+.restricted-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #b91c1c;
+  background-color: #fecaca;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.restricted-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.restricted-info-note {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.restricted-info-note .note-icon {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.modal-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Denetim Geçmişi Tablosu */
+.audit-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audit-table-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta-badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #15803d;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+
+.audit-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.audit-history-table th {
+  background-color: #f8fafc;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+}
+
+.audit-history-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.audit-history-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.audit-table-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #475569;
+}
+
+.time-icon {
+  color: #94a3b8;
+}
+
+.code-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  background-color: #f1f5f9;
+  color: #334155;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.cell-product {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.cell-user .user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #475569;
+  background-color: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #e2e8f0;
+}
+
+.outbox-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #64748b;
+  background-color: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px dashed #cbd5e1;
+  display: inline-block;
+}
+
+.cell-explanation {
+  max-width: 220px;
+}
+
+.explanation-text {
+  font-size: 11px;
+  color: #334155;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
 }

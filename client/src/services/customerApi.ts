@@ -1,4 +1,10 @@
-import { NotificationRequestDTO, NotificationResponseDTO, PaginatedCustomerResponse } from '../types/api.types';
+import {
+  NotificationRequestDTO,
+  NotificationResponseDTO,
+  PaginatedCustomerResponse,
+  AuditHistoryFetchResult,
+  AuditLogItem,
+} from '../types/api.types';
 import { PROCESS_CODES } from '../constants/processCodes';
 
 // Ortam değişkeni veya göreceli API yolu (/api)
@@ -44,18 +50,44 @@ export class CustomerApiService {
 
   /**
    * Müşteriye ait tarihsel bildirim denetim loglarını getirir.
+   * ABAC yetkilendirmesiyle korunur (Mesai saatleri 09:00 - 18:00).
    */
-  public static async fetchCustomerAuditHistory(musteriNo: string): Promise<any[]> {
+  public static async fetchCustomerAuditHistory(musteriNo: string): Promise<AuditHistoryFetchResult> {
     const url = `${getApiBaseUrl()}/customers/${encodeURIComponent(musteriNo)}/audit-logs`;
+    
+    // Şube operasyon personeli kurumsal oturum bilgileri
+    const headers: Record<string, string> = {
+      'x-user-role': 'staff',
+      'x-user-id': 'P10842',
+    };
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { headers });
+
+      if (response.status === 403) {
+        return {
+          success: false,
+          isForbidden: true,
+          message: 'Müşteri denetim kayıtlarına erişim güvenlik politikası gereği mesai saatleri (09:00 - 18:00) dışında kısıtlanmıştır.',
+        };
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP Hata: ${response.status} - Denetim geçmişi alınamadı.`);
       }
-      return await response.json();
-    } catch (error) {
+
+      const logs: AuditLogItem[] = await response.json();
+      return {
+        success: true,
+        logs,
+      };
+    } catch (error: any) {
       console.error('[CustomerApiService.fetchCustomerAuditHistory Error]:', error);
-      return [];
+      return {
+        success: false,
+        isForbidden: false,
+        message: error?.message || 'Denetim geçmişi servisine ulaşılamadı.',
+      };
     }
   }
 

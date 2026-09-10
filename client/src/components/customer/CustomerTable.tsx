@@ -9,7 +9,7 @@ import {
 } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
 import { AuditHistoryModal } from './AuditHistoryModal';
-import { History } from 'lucide-react';
+import { History, ShieldCheck } from 'lucide-react';
 
 interface CustomerTableProps {
   customers: CustomerUIModel[];
@@ -136,12 +136,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
             <div className="action-cell-group">
               <button
                 type="button"
-                className="btn-history-action"
-                title="Geçmiş Denetim Kayıtları"
+                className="btn-audit-logs"
+                title="Müşteri Denetim Geçmişi (Audit Logs)"
                 onClick={() => setSelectedCustomerForHistory(customer)}
               >
-                <History size={13} />
-                <span>Geçmiş</span>
+                <ShieldCheck size={13} className="audit-btn-icon" />
+                <span>Denetim Geçmişi</span>
               </button>
               <button
                 type="button"
